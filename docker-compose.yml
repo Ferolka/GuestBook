@@ -1,0 +1,37 @@
+version: '3.4'
+
+networks:
+  guestbook-network:
+    name: guestbook-network
+    driver: bridge
+
+services:
+  guestbook-core-api:
+    container_name: guestbook-core-api
+    build: GuestBook/
+    image: guestbook_guestbook-core-api:v1
+    restart: always
+    networks: 
+      - guestbook-network
+    ports:
+      - 8080:80
+    depends_on:
+      - guestbook-core-db
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=guestbook-core-db;Port=5432;Database=guestbook;Username=postgres;Password=mysecretpassword"
+  guestbook-core-db:
+    container_name: guestbook-core-postgres
+    image: postgres:latest
+    networks: 
+      - guestbook-network
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+    volumes:
+      - guestbook-postgres-data:/var/lib/postgres
+
+volumes:
+  guestbook-postgres-data:

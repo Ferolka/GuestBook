@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guestbook-core-api
+  labels:
+    app: guestbook-core-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guestbook-core-api
+  template:
+    metadata:
+      labels:
+        app: guestbook-core-api
+    spec:
+      volumes:
+      - name: guestbook-core-api-volume
+        persistentVolumeClaim:
+          claimName: 'my-pvc'
+      containers:
+      - name: guestbook-core-api
+        image: guestbook_guestbook-core-api:v1
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /data
+          name: guestbook-core-api-volume
+        env:
+          - name: ConnectionStrings__DefaultConnection
+            value: "Host=guestbook-core-postgres-service;Port=5432;Database=guestbook;Username=postgres;Password=mysecretpassword"
+          - name: Paths__FilePath
+            value: "../data/guestbook-core-api/WriteLines.txt"
+      
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: guestbook-core-api-service
+spec:
+ type: LoadBalancer
+ ports:
+ - port: 8080
+   targetPort: 80
+ selector:
+   app: guestbook-core-api
+   
+---
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: guestbook-core-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: guestbook-core-api
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 2
+
+
